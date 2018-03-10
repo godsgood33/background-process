@@ -68,7 +68,16 @@ class BackgroundProcess
 
         switch ($this->getOS()) {
             case self::OS_WINDOWS:
-                shell_exec(sprintf('%s &', $this->command, $outputFile));
+                if (class_exists('COM')) {
+                    $proc = new \COM('WScript.Shell');
+                    $cmd = $proc->ExpandEnvironmentStrings("%comspec%");
+                    $pid = $proc->run("{$cmd} /C \"{$this->command}\"", 0, false);
+                    if(is_numeric($pid)) {
+                        $this->pid = $pid;
+                    }
+                } else {
+                    shell_exec(sprintf('%s %s %s', $this->command, ($append ? '>>' : '>'), $outputFile));
+                }
                 break;
             case self::OS_NIX:
                 $this->pid = (int)shell_exec(sprintf('%s %s %s 2>&1 & echo $!', $this->command, ($append) ? '>>' : '>', $outputFile));
